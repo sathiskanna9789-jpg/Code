@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>CaseOps — Dispatch Board</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<!-- BOOT SCREEN -->
+<div id="boot">
+  <div class="boot-inner">
+    <img src="logo.png" alt="OmneNEST Technologies" class="boot-brand-logo"/>
+    <div class="boot-radar"></div>
+    <div class="boot-logo">CASEOPS</div>
+    <div class="boot-sub">IOB CASES · DISPATCH BOARD</div>
+    <div class="boot-bar"><div class="boot-fill"></div></div>
+    <div class="boot-status" id="bootStatus">INITIALIZING...</div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+
+ 
+<!-- TOP NAV -->
+<header class="topbar">
+  <div class="topbar-left">
+    <img src="logo.png" alt="OmneNEST Technologies" class="topbar-logo"/>
+  </div>
+  <div class="topbar-center">
+    <div class="clock" id="clock"></div>
+    <div class="date-display" id="dateDisplay"></div>
+    <div class="topbar-brand-row">
+      <span class="logo-text">CASEOPS</span>
+      <span class="logo-dot"></span>
+      <span class="nav-tag">IOB CASES · DISPATCH BOARD</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div id="incAlertBar" class="delivery-alert-bar"></div>
+    <div id="deliveryAlertBar" class="delivery-alert-bar"></div>
+    <div id="commentAlertBar"class="delivery-alert-bar"></div>
+    <div class="alert-bell" id="alertBell" onclick="toggleAlertPanel()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="bell-badge" id="bellBadge">0</span>
+    </div>
+    <label class="upload-btn" for="upload">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      LOAD DATA
+    </label>
+    <input type="file" id="upload" accept=".xlsx,.xls,.csv" style="display:none"/>
+    <button class="upload-btn" id="exportBtn" onclick="exportCurrentViewCSV()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      EXPORT
+    </button>
+  </div>
+
+</header>
+
+
+<!-- INC ALERT MODAL -->
+<div class="modal-overlay hidden" id="incModal">
+  <div class="modal delivery-modal">
+    <div class="modal-header">
+      <span class="modal-title">🔥 ACTIVE INC CASES</span>
+      <button class="close-btn" onclick="closeINCModal()">✕</button>
+    </div>
+    <div id="incModalContent" class="delivery-modal-content"></div>
+  </div>
+</div>
+
+<!-- ALERT PANEL -->
+<div class="alert-panel" id="alertPanel">
+  <div class="alert-panel-header">
+    <span>PROMISE ALERTS</span>
+    <button onclick="toggleAlertPanel()" class="close-btn">✕</button>
+  </div>
+  <div id="alertList" class="alert-list"></div>
+</div>
+
+<!-- DAILY BRIEFING MODAL -->
+<div class="modal-overlay" id="briefingModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">☀ DAILY BRIEFING</span>
+      <button class="close-btn" onclick="closeBriefing()">✕</button>
+    </div>
+    <div id="briefingContent" class="briefing-content"></div>
+    <button class="modal-cta" onclick="closeBriefing()">START WORKING</button>
+  </div>
+</div>
+
+<!-- CASE DETAIL DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-case-num" id="drawerCaseNum"></div>
+      <div class="drawer-account" id="drawerAccount"></div>
+    </div>
+    <button class="close-btn" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <!-- Status + Tags -->
+    <div class="drawer-meta" id="drawerMeta"></div>
+
+   
+
+    <!-- Email Thread -->
+    <div class="drawer-section">
+      <div class="section-label">CLIENT EMAILS</div>
+      <div id="emailLog" class="email-log"></div>
+      <div class="email-input-row">
+        <input type="text" id="emailSubject" placeholder="Subject / Summary…" class="email-subject-in"/>
+        <select id="emailDir" class="email-dir-sel">
+          <option value="received">📥 Received</option>
+          <option value="sent">📤 Sent</option>
+        </select>
+        <input type="date" id="actualDeliveryDate" />
+        <button onclick="addEmail()" class="add-btn">ADD</button>
+      </div>
+    </div>
+
+    <!-- Promise Tracker -->
+    <div class="drawer-section">
+      <div class="section-label">PROMISE / COMMITMENT TRACKER</div>
+      <div id="promiseLog" class="promise-log"></div>
+      <div class="promise-input-row">
+        <input type="text" id="promiseText" placeholder="e.g. Client will take access tomorrow…" class="promise-text-in"/>
+        <input type="date" id="promiseDate" class="promise-date-in"/>
+        <select id="promiseOwner" class="promise-owner-sel">
+          <option value="Client">Client</option>
+          <option value="Us">Us</option>
+          <option value="BCG">BCG</option>
+          <option value="Developers">Developers</option>
+        </select>
+        <button onclick="addPromise()" class="add-btn">TRACK</button>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="drawer-section">
+      <div class="section-label">NOTES</div>
+      <textarea id="caseNotes" class="case-notes-area" placeholder="Internal notes…" oninput="saveNotes()"></textarea>
+    </div>
+  </div>
+</div>
+
+<main class="main">
+  <div id="prodWindowBanner" class="prod-banner"></div>
+  
+
+  <!-- KPI ROW -->
+  <div class="kpi-row" id="kpi"></div>
+
+  <!-- ALERTS STRIP -->
+  <div id="alertStrip" class="alert-strip"></div>
+
+  <!-- WATCHLIST -->
+  <div class="watchlist-wrap">
+    <div class="section-header">
+      <span>⭐ WATCHLIST</span>
+      <span class="table-count"><span id="kpiWatchCount">0</span> CASES</span>
+    </div>
+    <div id="watchlistSection" class="watchlist-section"></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters-bar">
+    <div class="filter-group">
+      <label>ACCOUNT</label>
+      <select id="accountFilter" multiple></select>
+    </div>
+    <div class="filter-group">
+      <label>OWNER</label>
+      <select id="ownerFilter"multiple></select>
+    </div>
+    <div class="filter-group">
+      <label>STATUS</label>
+      <select id="statusFilter"multiple></select>
+    </div>
+    <div class="filter-group">
+      <label>PENDING WITH</label>
+      <select id="pendingFilter"multiple></select>
+    </div>
+
+    <div class="filter-group">
+      <label>AGE BUCKET</label>
+      <select id="bucketFilter"multiple></select>
+    </div>
+
+    <div class="filter-group">
+      <label>INC OWNER</label>
+      <select id="INCFilter"multiple></select>
+    </div> 
+    
+    <div class="filter-group">
+      <label>INC OWNER Queue</label>
+      <select id="INCFilterqueue"multiple></select>
+    </div>
+
+    <div class="filter-group">
+      <label>PROMISE</label>
+      <select id="promiseFilter" onchange="applyFilters()">
+        <option value="">All</option>
+        <option value="overdue">🔴 Overdue</option>
+        <option value="today">🟡 Due Today</option>
+        <option value="pending">🟢 Has Promise</option>
+        <option value="none">— No Promise</option>
+      </select>
+    </div>
+    <button class="reset-btn" onclick="resetFilters()">RESET</button>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-grid">
+    <div class="chart-card" id="donutCard">
+      <div class="chart-title">CASES BY ACCOUNT</div>
+      <div class="chart-wrap"><canvas id="donut"></canvas></div>
+    </div>
+    <div class="chart-card" id="barCard">
+      <div class="chart-title">AGE DISTRIBUTION</div>
+      <div class="chart-wrap"><canvas id="bar"></canvas></div>
+    </div>
+    <div class="chart-card" id="pwCard">
+      <div class="chart-title">PENDING WITH</div>
+      <div class="chart-wrap"><canvas id="pendingWithChart"></canvas></div>
+    </div>
+    <div class="chart-card" id="envCard">
+      <div class="chart-title">PROD vs UAT</div>
+      <div class="chart-wrap"><canvas id="envChart"></canvas></div>
+    </div>
+    </div>
+      
+
+  
+
+  <!-- EMAIL WATCH INDICATOR -->
+  <div class="section-header">
+    <span>CASE TABLE</span>
+    <span class="table-count" id="tableCount"></span>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table id="caseTable">
+      <thead>
+        <tr>
+          <th>★</th>
+          <th>STATUS</th>
+          <th>CASE #</th>
+          <th>ACCOUNT</th>
+          <th>OWNER</th>
+          <th>AGE</th>
+          <th>PENDING WITH</th>
+          <th>INC</th>
+          <th>INC AGE</th>
+          <th>INC OWNER</th>
+          <th>INC OWNER Queue</th>
+          <th>Delivery Date</th>
+          <th>Next Update</th>
+          <!-- <th>Last Update</th> -->
+          <th>Client Last Email</th>
+          <th>Last Email</th>
+          <th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
